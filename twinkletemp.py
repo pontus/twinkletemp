@@ -13,6 +13,7 @@ import logging.handlers
 import unicodedata
 import typing
 import yaml
+import matplotlib
 
 
 class NATemps(typing.Dict):
@@ -205,16 +206,23 @@ def set_color(c: Color, db: Database) -> None:
         todb = f"{ip},{hw}"
         db["led"] = todb
 
-    hcontrol = xled.HighControlInterface(ip, hw)
+    control = xled.ControlInterface(ip, hw)
 
-    hcontrol.set_static_color(c["red"], c["green"], c["blue"])
+    control.set_led_color_rgb(c["red"], c["green"], c["blue"])
 
 
 # Turn
-def color_from_temp(temp: float) -> Color:
-    c = Color(red=10, green=20, blue=30)
-    print(c)
-    return c
+def color_from_temp(temp: float, cm) -> Color:
+
+    if temp < -20:
+        c = 0
+    elif temp > 30:
+        c = 1
+    else:
+        c = (temp + 20) / 50
+    col = cm(c, bytes=True)
+
+    return Color(red=int(col[0]), green=int(col[1]), blue=int(col[2]))
 
 
 if __name__ == "__main__":
@@ -229,6 +237,6 @@ if __name__ == "__main__":
 
     temp = get_netatmo_temps(db)[dev]
 
-    col = color_from_temp(temp["temperature"])
-
+    cm = matplotlib.colormaps["rainbow"]
+    col = color_from_temp(temp["temperature"], cm)
     set_color(col, db)
